@@ -1,0 +1,9 @@
+Tools for a Bitcoin isolated cluster:
+
+Use the following code to add a vagrant box:
+
+    vagrant box add precise32 http://files.vagrantup.com/precise32.box
+
+Follow the steps here:
+
+    http://code.tutsplus.com/tutorials/vagrant-what-why-and-how--net-26500
