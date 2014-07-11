@@ -15,19 +15,23 @@ def vagrant():
 
 def setup():
     # Builds/installs bitcoin
-    sudo('apt-get update')
-    sudo('apt-get install -y build-essential git libdb++-dev libboost-all-dev libminiupnpc-dev')
-    sudo('apt-get install -y automake emacs24-nox libssl-dev pkg-config')
+    #sudo('apt-get update')
+    sudo('apt-get install -y build-essential git libdb++-dev')
+    sudo('apt-get install -y libboost-all-dev libminiupnpc-dev')
+    sudo('apt-get install -y automake emacs23-nox libssl-dev pkg-config')
     run('mkdir -p installing')
     with cd('installing'):
-        run('git pull origin master')
-        run('if ! [ -a configure.sh ]; then ./autogen.sh; fi')
-        run('./configure --with-incompatible-bdb --enable-tests=no')
-        run('make')
+        run('if ! [ -a bitcoin ]; then git clone https://github.com/bitcoin/bitcoin; fi')
+        with cd('bitcoin'):
+            run('git pull origin master')
+            run('if ! [ -a configure.sh ]; then ./autogen.sh; fi')
+            run('./configure --with-incompatible-bdb --enable-tests=no')
+            run('make')
 
+    run('mkdir -p ~/.bitcoin')
     run('echo "rpcuser=nothing\nrpcpassword=0932jf0j9sdjf" > ~/.bitcoin/bitcoin.conf')
     run('mkdir -p ~/bin')
-    run('if ! [ -a ~/bin/bitcoind ]; then ln -s $HOME/installing/src/bitcoind $HOME/bin/bitcoind')
+    run('if ! [ -a ~/bin/bitcoind ]; then ln -s $HOME/installing/bitcoin/src/bitcoind $HOME/bin/bitcoind; fi')
 
 def start():
     run('bitcoind -daemon -debug')
