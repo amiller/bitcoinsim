@@ -10,15 +10,29 @@ def vagrant():
  
     # use vagrant ssh key
     result = local('vagrant ssh-config | grep IdentityFile', capture=True)
-    env.key_filename = result.split()[1][1:-1] # strip ""
+    env.key_filename = result.split()[1] # strip ""
     print 'key: [%s]' % env.key_filename
+
+def setup_apt():
+    sudo('apt-get install -y build-essential git libdb++-dev python-software-properties')
+    sudo('apt-get install -y libtool autotools-dev autoconf pkg-config gdb')
+    sudo('add-apt-repository -y ppa:kalakris/cmake')
+    #sudo('apt-get --fix-missing update; true')
+    sudo('apt-get install -y libminiupnpc-dev cmake clang-3.4 clang-3.4++ llvm-3.4-dev')
+    sudo('apt-get install -y libglib2.0-dev libigraph0-dev xz-utils liblz1 libevent-dev')
+    sudo('apt-get install -y automake emacs23-nox libssl-dev pkg-config curl')
+    sudo('update-alternatives --install /usr/bin/llvm-link llvm-link /usr/bin/llvm-link-3.4 33')
+    sudo('update-alternatives --install /usr/bin/llvm-bcanalyzer llvm-bcanalyzer /usr/bin/llvm-bcanalyzer-3.4 33')
+    sudo('update-alternatives --install /usr/bin/llvm-ranlib llvm-ranlib /usr/bin/llvm-ranlib-3.4 33')
+    sudo('update-alternatives --install /usr/bin/llvm-ar llvm-ar /usr/bin/llvm-ar-3.4 33')
+    sudo('update-alternatives --install /usr/bin/opt llvm-opt /usr/bin/opt-3.4 33')
+    sudo('update-alternatives --install /usr/include/llvm llvm-include /usr/include/llvm-3.4/llvm 33')
+    sudo('update-alternatives --install /usr/include/llvm-c llvm-c-include /usr/include/llvm-c-3.4/llvm-c 33')
+
+
 
 def setup():
     # Builds/installs bitcoin
-    #sudo('apt-get update')
-    sudo('apt-get install -y build-essential git libdb++-dev')
-    sudo('apt-get install -y libboost-all-dev libminiupnpc-dev')
-    sudo('apt-get install -y automake emacs23-nox libssl-dev pkg-config')
     run('mkdir -p installing')
     with cd('installing'):
         run('if ! [ -a bitcoin ]; then git clone https://github.com/bitcoin/bitcoin; fi')
@@ -32,6 +46,76 @@ def setup():
     run('echo "rpcuser=nothing\nrpcpassword=0932jf0j9sdjf" > ~/.bitcoin/bitcoin.conf')
     run('mkdir -p ~/bin')
     run('if ! [ -a ~/bin/bitcoind ]; then ln -s $HOME/installing/bitcoin/src/bitcoind $HOME/bin/bitcoind; fi')
+
+def setup_shadow():
+    run('mkdir -p installing')
+    with cd('installing'):
+        run('if ! [ -a shadow ]; then git clone https://github.com/shadow/shadow; fi')
+        with cd('shadow'):
+            run('git pull origin master')
+            run('./setup build -fg')
+            run('./setup install')
+
+def setup_plugin_deps():
+    run('mkdir -p installing')
+    with cd('installing'):
+        run('if ! [ -a shadow-plugin-bitcoin ]; then git clone https://github.com/amiller/shadow-plugin-bitcoin; fi')
+        with cd('shadow-plugin-bitcoin'):
+            run('git checkout with-pth')
+            run('mkdir -p build')
+            with cd('build'):
+                # Dependencies
+                
+                # Boost
+                run('if ! [ -a boost_1_50_0 ]; then curl -L -O http://downloads.sourceforge.net/project/boost/boost/1.50.0/boost_1_50_0.tar.gz; tar -xzf boost_1_50_0.tar.gz; fi')
+                with cd('boost_1_50_0'):
+                    run('./bootstrap.sh --with-libraries=filesystem,system,thread,program_options')
+                    run('./b2')
+
+                # Bitcoin
+                run('if ! [ -a bitcoin ]; then git clone https://github.com/bitcoin/bitcoin.git; fi')
+                with cd('bitcoin'):
+                    run('git checkout 0.9.2')
+                    run('git pull')
+                    run('./autogen.sh')
+                    run('PKG_CONFIG_PATH=/home/${USER}/.shadow/lib/pkgconfig LDFLAGS=-L/home/${USER}/.shadow/lib CFLAGS=-I/home/${USER}/.shadow/include CXXFLAGS=-I`pwd`/../boost_1_50_0 ./configure --prefix=/home/${USER}/.shadow --without-miniupnpc --without-gui --disable-wallet --disable-tests --with-boost-libdir=`pwd`/../boost_1_50_0/stage/lib')
+
+                # Gnu-Pth
+                run('if ! [ -a gnu-pth ]; then git clone https://github.com/amiller/gnu-pth.git -b shadow; fi')
+                with cd('gnu-pth'):
+                    run('git pull')
+                    run('./configure --enable-epoll')
+
+                # Jansson
+                run('if ! [ -a jansson-2.6 ]; then curl -L -O http://www.digip.org/jansson/releases/jansson-2.6.tar.gz; tar -xzf jansson-2.6.tar.gz; fi')
+                with cd('jansson-2.6'):
+                    run('./configure --prefix=${HOME}/.local')
+                    run('make install')
+
+                # Picocoin
+                run('if ! [ -a picocoin ]; then git clone https://github.com/jgarzik/picocoin; fi')
+                with cd('picocoin'):
+                    run('git pull')
+                    run('./autogen.sh')
+                    run('./configure LDFLAGS="-L${HOME}/.shadow/lib -L${HOME}/.local/lib"')
+
+def setup_plugin():
+    run('mkdir -p installing')
+    with cd('installing'):
+        run('if ! [ -a shadow-plugin-bitcoin ]; then git clone https://github.com/amiller/shadow-plugin-bitcoin; fi')
+        with cd('shadow-plugin-bitcoin'):
+            run('git checkout with-pth')
+            run('git pull')
+            run('mkdir -p build')
+            with cd('build'):
+                run('CXX=clang++ CC=clang cmake ..')
+                run('make')
+                run('make install')
+
+def run_plugin():
+    with cd('installing/shadow-plugin-bitcoin/build'):
+        run('mkdir -p .bitcoin .bitcoin2 .bitcoin3 .bitcoin4 .bitcoin5 .bitcoin6')
+        run('${HOME}/.shadow/bin/shadow --preload=${HOME}/.shadow/lib/libshadow-preload-bitcoind.so  ${HOME}/installing/shadow-plugin-bitcoin/resource/shadow.config.xml')
 
 def start():
     run('bitcoind -daemon -debug')
