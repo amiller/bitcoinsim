@@ -1,6 +1,7 @@
 Tools for a Bitcoin isolated cluster.
 
 Requirements:
+    virtualbox
     vagrant
     fabric (python-fabric)
 
@@ -15,6 +16,7 @@ Follow the steps here to set up the virtual machine:
 Use fabric to setup the environment
     fab vagrant setup_apt
     fab vagrant setup_shadow
-    fab vagrant setup_plugin_deps
+    fab vagrant setup_plugin_deps    
+    fab vagrant setup
     fab vagrant setup_plugin
     fab vagrant run_plugin
