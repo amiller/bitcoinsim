@@ -14,6 +14,7 @@ Follow the steps here to set up the virtual machine:
     http://code.tutsplus.com/tutorials/vagrant-what-why-and-how--net-26500
 
 Use fabric to setup the environment
+
     fab vagrant setup_apt
     fab vagrant setup_shadow
     fab vagrant setup_plugin_deps    
