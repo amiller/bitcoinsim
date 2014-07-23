@@ -2,9 +2,9 @@ A simulated Bitcoin network in a box
 --
 
 Requirements:
-    virtualbox
-    vagrant
-    fabric (python-fabric)
+-    virtualbox
+-    vagrant
+-    fabric (python-fabric)
 
 Use the following code to add a vagrant box:
 
