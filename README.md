@@ -14,7 +14,7 @@ Follow the steps here to set up the virtual machine:
 
     http://code.tutsplus.com/tutorials/vagrant-what-why-and-how--net-26500
 
-Use fabric to setup the environment
+Use fabric to setup the VM build environment, install the Bitcoin simulator and its dependencies, and run a sample experiment:
 
     fab vagrant setup_apt
     fab vagrant setup_shadow
