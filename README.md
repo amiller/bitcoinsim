@@ -1,4 +1,4 @@
-Tools for a Bitcoin isolated cluster.
+A simulated Bitcoin network in a box
 --
 
 Requirements:
