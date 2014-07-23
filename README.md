@@ -19,6 +19,5 @@ Use fabric to setup the environment
     fab vagrant setup_apt
     fab vagrant setup_shadow
     fab vagrant setup_plugin_deps    
-    fab vagrant setup
     fab vagrant setup_plugin
     fab vagrant run_plugin
