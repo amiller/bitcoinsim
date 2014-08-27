@@ -56,6 +56,29 @@ def setup_shadow():
             run('./setup build -fg')
             run('./setup install')
 
+def setup_extras():
+    run('mkdir -p installing')
+    with cd('installing'):
+        run('if ! [ -a shadow-plugin-extras ]; then git clone https://github.com/amiller/shadow-plugin-extras; fi')
+        with cd('shadow-plugin-extras'):
+            run('git checkout local-sockets')
+            run('git pull')
+            run('mkdir -p build')
+            with cd('build'):
+                # Dependencies
+
+                # Gnu-Pth
+                run('if ! [ -a gnu-pth ]; then git clone https://github.com/amiller/gnu-pth.git -b shadow; fi')
+                with cd('gnu-pth'):
+                    run('git pull')
+                    run('./configure --enable-epoll')
+
+                run('CXX=clang++ CC=clang cmake ..')
+                run('make')
+                run('make install')
+
+        
+
 def setup_plugin_deps():
     run('mkdir -p installing')
     with cd('installing'):
@@ -65,6 +88,21 @@ def setup_plugin_deps():
             run('mkdir -p build')
             with cd('build'):
                 # Dependencies
+
+                # Libev
+                run('if ! [ -a libev-4.15 ]; then wget http://pkgs.fedoraproject.org/lookaside/pkgs/libev/libev-4.15.tar.gz/3a73f247e790e2590c01f3492136ed31/libev-4.15.tar.gz; tar -zxf libev-4.15.tar.gz; fi')
+                with cd('libev-4.15'):
+                    run('./configure')
+
+                # Netmine
+                # TODO... this is a UMD private repository
+
+                # Picocoin
+                run('if ! [ -a picocoin ]; then git clone https://github.com/amiller/picocoin; fi')
+                with cd('picocoin'):
+                    run('git pull')
+                    run('./autogen.sh')
+                    run('./configure LDFLAGS="-L${HOME}/.shadow/lib -L${HOME}/.local/lib"')
                 
                 # Boost
                 run('if ! [ -a boost_1_50_0 ]; then curl -L -O http://downloads.sourceforge.net/project/boost/boost/1.50.0/boost_1_50_0.tar.gz; tar -xzf boost_1_50_0.tar.gz; fi')
@@ -73,9 +111,9 @@ def setup_plugin_deps():
                     run('./b2')
 
                 # Bitcoin
-                run('if ! [ -a bitcoin ]; then git clone https://github.com/bitcoin/bitcoin.git; fi')
+                run('if ! [ -a bitcoin ]; then git clone https://github.com/amiller/bitcoin.git; fi')
                 with cd('bitcoin'):
-                    run('git checkout 0.9.2')
+                    run('git checkout 0.9.2-netmine')
                     run('git pull')
                     run('./autogen.sh')
                     run('PKG_CONFIG_PATH=/home/${USER}/.shadow/lib/pkgconfig LDFLAGS=-L/home/${USER}/.shadow/lib CFLAGS=-I/home/${USER}/.shadow/include CXXFLAGS=-I`pwd`/../boost_1_50_0 ./configure --prefix=/home/${USER}/.shadow --without-miniupnpc --without-gui --disable-wallet --disable-tests --with-boost-libdir=`pwd`/../boost_1_50_0/stage/lib')
@@ -92,12 +130,6 @@ def setup_plugin_deps():
                     run('./configure --prefix=${HOME}/.local')
                     run('make install')
 
-                # Picocoin
-                run('if ! [ -a picocoin ]; then git clone https://github.com/jgarzik/picocoin; fi')
-                with cd('picocoin'):
-                    run('git pull')
-                    run('./autogen.sh')
-                    run('./configure LDFLAGS="-L${HOME}/.shadow/lib -L${HOME}/.local/lib"')
 
 def setup_plugin():
     run('mkdir -p installing')
@@ -114,8 +146,9 @@ def setup_plugin():
 
 def run_plugin():
     with cd('installing/shadow-plugin-bitcoin/build'):
-        run('mkdir -p .bitcoin .bitcoin2 .bitcoin3 .bitcoin4 .bitcoin5 .bitcoin6')
-        run('${HOME}/.shadow/bin/shadow --preload=${HOME}/.shadow/lib/libshadow-preload-bitcoind.so  ${HOME}/installing/shadow-plugin-bitcoin/resource/shadow.config.xml')
+        #run('${HOME}/.shadow/bin/shadow --preload=${HOME}/.shadow/lib/libshadow-preload-bitcoind.so  ${HOME}/installing/shadow-plugin-bitcoin/resource/shadow.config.xml')
+        run('LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH:$HOME/.shadow/lib')
+        run('killall -9 shadow; ../src/bitcoind/shadow-bitcoind -y -i ../resource/shadow.config.xml -t -r 2 -T initdata/dotbitcoin_template_120k -w 2')
 
 def start():
     run('bitcoind -daemon -debug')
